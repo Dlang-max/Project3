@@ -19,11 +19,24 @@ public class Event implements Comparable<Event> {
 	/**
 	 * @param timeOfEvent the time when the collision will take place
 	 * @param timeEventCreated the time when the event was first instantiated and added to the queue
+	 * @param p1 the first particle involved in the collision
+	 * @param p2 the second particle involved in the collision
 	 */
 	public Event (double timeOfEvent, double timeEventCreated, Particle p1, Particle p2) {
 		this(timeOfEvent, timeEventCreated);
 		_p1 = p1;
 		_p2 = p2;
+	}
+
+	/**
+	 * @param timeOfEvent the time when the collision will take place
+	 * @param timeEventCreated the time when the event was first instantiated and added to the queue
+	 * @param p1 the first particle involved in the collision with a wall
+	 */
+	public Event (double timeOfEvent, double timeEventCreated, Particle p1) {
+		this(timeOfEvent, timeEventCreated);
+		_p1 = p1;
+		_p2 = null;
 	}
 
 

@@ -5,7 +5,7 @@ import java.util.jar.Attributes.Name;
 public class Particle {
 	public String _name;
 	public double _x, _y;
-	private double _vx, _vy;
+	public double _vx, _vy;
 	private double _radius;
 	private double _lastUpdateTime;
 
@@ -148,6 +148,7 @@ public class Particle {
 	/**
 	 * Computes and returns the time when (if ever) this particle will collide with a wall,
 	 * or infinity if the particle will never hit a wall.
+	 * 
 	 * @param width the width of the screen containing the particles
 	 * @param height the height of the screen containing the particles
 	 * @return the time when the particle will collide with a wall, or infinity if it will never collide
@@ -157,28 +158,20 @@ public class Particle {
 		double timeY = Double.POSITIVE_INFINITY;
 		
 		if(_vx > 0){//Collision with right wall.
-			timeX = Math.abs((width - (_x + _radius)) / _vx);
-			System.out.println("Right");
+			timeX = Math.abs((width - _x - _radius) / _vx);
 		}
 		else if(_vx < 0){//Collision with left wall.
-			timeX = Math.abs((0 + (_x - _radius)) / _vx);
-			System.out.println("Left");
-
+			timeX = Math.abs((_x - _radius) / _vx);
 		}
 
 		if(_vy > 0){//Collision with bottom wall.
-			timeY = Math.abs((height - (_y + _radius)) / _vy);
-			System.out.println("Bottom");
-
+			timeY = Math.abs((height - _y - _radius) / _vy);
 		}
 		else if(_vy < 0){//Collision with top wall.
-			timeY = Math.abs((0 + (_y - _radius)) / _vy);
-			System.out.println("Top");
+			timeY = Math.abs((_y - _radius) / _vy);
 		}
 
-		System.out.println("Time X: " + timeX);
-		System.out.println("Time Y: " + timeY);
-
+		//Adds a margin for very small values, in order to avoid infinitely repeating the same collision.
 		double SMALL = 1e-6;
 		if (timeX > SMALL && timeY > SMALL) {
 			return Math.min(timeX, timeY);
@@ -191,40 +184,30 @@ public class Particle {
 		}
 		// no collision
 		return Double.POSITIVE_INFINITY;
-
-		//return Math.min(timeX, timeY);
-
 	}
 
 	/**
 	 * Updates the velocity of this particle after a collision with a wall.
+	 * 
 	 * @param now the current time in the simulation
 	 * @param width the width of the screen containing the particles
 	 * @param height the height of the screen containing the particles
 	 */
 	public void updateAfterWallCollision(double now, int width, int height) {
-		System.out.println("Change Velo: " + _name + " " + _x + " " + _y + " " + _vx + " " + _vy + " " + _radius);
-		System.out.println("Now: " + now);
-
-		double SMALL = 1e-6 * _vx;
-
-		if(_x + _radius + SMALL >= width || _x + _radius - SMALL >= width) { // Collision with right wall.
+		double SMALL = 1e-6 * Math.abs(_vx);
+		if(Math.abs(width -_x - _radius)  <= SMALL) { // Collision with right wall.
 			this._vx *= -1;
-			System.out.println("Right");
 		}
-		else if(_x - _radius + SMALL <= 0 || _x - _radius - SMALL <= 0) { // Collision with left wall
+		else if(Math.abs(_x - _radius) <= SMALL) { // Collision with left wall
 			this._vx *= -1;
-			System.out.println("Left");
 		}
 		
-		SMALL = 1e-6 * _vy;
-		if(_y + _radius + SMALL >= height || _y + _radius - SMALL >= height) { // Collision with bottom wall.
+		SMALL = 1e-6 * Math.abs(_vy);
+		if(Math.abs(width -_y - _radius)  <= SMALL) { // Collision with bottom wall.
 			this._vy *= -1;
-			System.out.println("Bottom");
 		}
-		else if(_y - _radius + SMALL <= 0 || _y - _radius - SMALL <= 0) { // Collision with top wall. 
+		else if(Math.abs(_y - _radius) <= SMALL) { // Collision with top wall. 
 			this._vy *= -1;
-			System.out.println("Top");
 		}
 	
 		_lastUpdateTime = now;

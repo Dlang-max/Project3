@@ -3,7 +3,8 @@ import java.util.function.*;
 import javax.swing.*;
 import java.awt.*;
 import java.io.*;
-import javax.sound.sampled.*;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.*;
 
 public class ParticleSimulator extends JPanel {
 	private Heap<Event> _events;
@@ -62,7 +63,7 @@ public class ParticleSimulator extends JPanel {
 	}
 
 	/**
-	 * Executes the actual simulation.
+	 * Executes simulation.
 	 */
 	private void simulate (boolean show) {
 		double lastTime = 0;
@@ -70,55 +71,23 @@ public class ParticleSimulator extends JPanel {
 		// Create initial events, i.e., all the possible
 		// collisions between all the particles and each other,
 		// and all the particles and the walls.
-		for(int i = 0; i < _particles.size(); i++) {
-			for(int j = i + 1; j < _particles.size(); j++) {
-				double collisionTime = _particles.get(i).getCollisionTime(_particles.get(j));
-				if(collisionTime < Double.POSITIVE_INFINITY) {
-					System.out.println("Initial Collision: " + _particles.get(i) + " : " + _particles.get(j));
-					System.out.println("Time: " + collisionTime);
-
-					_events.add(new Event(collisionTime, lastTime, _particles.get(i), _particles.get(j)));
-				}
-			}
-			double wallCollisionTime = _particles.get(i).getWallCollisionTime(_width, _width);
-			if(wallCollisionTime < Double.POSITIVE_INFINITY){
-				System.out.println("Initial Wall Collision: " + _particles.get(i));
-				System.out.println("Time: " + wallCollisionTime);
-
-				_events.add(new Event(wallCollisionTime, lastTime, _particles.get(i), null));
-			}
-		}
-		
+		enqueueInitialEvents();
 		_events.add(new TerminationEvent(_duration));
 
-
-		int count = 0;
-		while (_events.size() > 0 && count < 10) {
+		//Simulation loop. Runs until _duration is over or there are no future collisions.
+		while (_events.size() > 0) {
 			Event event = _events.removeFirst();
-			System.out.println("Current Time: " + event._timeOfEvent);
 			double delta = event._timeOfEvent - lastTime;
-			System.out.println("Delta: " + delta);
-			System.out.println("Events: " + _events.size());
-
-			//System.out.println("P1: " + event._p1._name);
-			if(event._p2 != null){
-				System.out.println("P2: " + event._p2._name);
-			}
-
-
 
 			if (event instanceof TerminationEvent) {
 				updateAllParticles(delta);
-				System.out.println("Terminated");
 				break;
 			}
 
 			//Check if event still valid; if not, then skip this event
-			if (event._p1.get_lastUpdateTime() > event._timeEventCreated || (event._p2 != null && event._p2.get_lastUpdateTime() > event._timeEventCreated)) {
-				System.out.println("Skipping event" + event._timeEventCreated);
+			if (isNotValidEvent(event)) {
 				continue;
 			}
-
 
 			// Since the event is valid, then pause the simulation for the right
 			// amount of time, and then update the screen.
@@ -130,56 +99,22 @@ public class ParticleSimulator extends JPanel {
 
 			// Update positions of all particles
 			updateAllParticles(delta);
-			System.out.println("Updating particles");
-
-
+			
 			// Update the velocity of the particle(s) involved in the collision
 			// (either for a particle-wall collision or a particle-particle collision).
 			// You should call the Particle.updateAfterCollision method at some point.
-			if(event._p2 == null) {
-				event._p1.updateAfterWallCollision(event._timeOfEvent, _width, _width);
-				System.out.println("X: " + event._p1._x);
-				System.out.println("Y: " + event._p1._y);
-			}
-			else {
+			if(event._p2 != null) {
 				event._p1.updateAfterCollision(event._timeOfEvent, event._p2);
 			}
-
-			//Calculating new collisions:
+			else {
+				event._p1.updateAfterWallCollision(event._timeOfEvent, _width, _width);
+			}
 
 			//Check for collisions with other particles
-			for(Particle p : _particles){
-				if(!p.equals(event._p1)){
-					System.out.println("Enqueueing new event \n\n");
-					double time = event._p1.getCollisionTime(p);
-					if(time < Double.POSITIVE_INFINITY){
-						_events.add(new Event(time + event._timeOfEvent, event._timeOfEvent, event._p1, p));
-					}
-				}
-				if(event._p2 != null && !p.equals(event._p2)){
-					System.out.println("Enqueueing new event \n\n");
-					double time = event._p2.getCollisionTime(p);
-					if(time < Double.POSITIVE_INFINITY){
-						_events.add(new Event(time + event._timeOfEvent, event._timeOfEvent, event._p2, p));
-					}
-				}
-			}
-
+			enqueueParticleCollisionsAfterCollision(event);
 
 			//Check for collisions with walls
-			double time = event._p1.getWallCollisionTime(_width, _width);
-			if(time < Double.POSITIVE_INFINITY){
-				System.out.println("Time!!!" + time);
-				System.out.println("Queuing Wall Collision: ");
-				_events.add(new Event(time + event._timeOfEvent, event._timeOfEvent, event._p1, null));
-			}
-
-			if(event._p2 != null){
-				time = event._p2.getWallCollisionTime(_width, _width);
-				if(time < Double.POSITIVE_INFINITY){
-					_events.add(new Event(time + event._timeOfEvent, event._timeOfEvent, event._p2, null));
-				}
-			}
+			enqueueParticleWallCollisions(event);
 
 			// Update the time of our simulation
 			lastTime = event._timeOfEvent;
@@ -197,11 +132,83 @@ public class ParticleSimulator extends JPanel {
 			System.out.println(p);
 		}
 	}
+
+
+	/**
+	 * Adds the initial collisions predicted for all the particles at the initial time to the heap.
+	 */
+	private void enqueueInitialEvents () {
+		for(int i = 0; i < _particles.size(); i++) {
+			for(int j = i + 1; j < _particles.size(); j++) {
+				double collisionTime = _particles.get(i).getCollisionTime(_particles.get(j));
+				if(collisionTime < Double.POSITIVE_INFINITY) {
+					_events.add(new Event(collisionTime, 0.0, _particles.get(i), _particles.get(j)));
+				}
+			}
+			double wallCollisionTime = _particles.get(i).getWallCollisionTime(_width, _width);
+			if(wallCollisionTime < Double.POSITIVE_INFINITY){
+				_events.add(new Event(wallCollisionTime, 0.0, _particles.get(i)));
+			}
+		}
+	}
+
+	/**
+	 * Tests if an event is not valid.
+	 * 
+	 * @param event the event being validated
+	 * @return true if event is invalid
+	 */
+	private boolean isNotValidEvent (Event event) {
+		return event._p1.get_lastUpdateTime() > event._timeEventCreated || (event._p2 != null && event._p2.get_lastUpdateTime() > event._timeEventCreated);
+	}
+	
+	/**
+	 * Calculates the next particle-particle collision for the particle(s) involved in an event.
+	 * 
+	 * @param event the event afterwhich to check for new collisions.
+	 */
+	private void enqueueParticleCollisionsAfterCollision(Event event) {
+		for(Particle p : _particles){
+				if(!p.equals(event._p1)){
+					double time = event._p1.getCollisionTime(p);
+					if(time < Double.POSITIVE_INFINITY){
+						_events.add(new Event(time + event._timeOfEvent, event._timeOfEvent, event._p1, p));
+					}
+				}
+				if(event._p2 != null && !p.equals(event._p2)){
+					double time = event._p2.getCollisionTime(p);
+					if(time < Double.POSITIVE_INFINITY){
+						_events.add(new Event(time + event._timeOfEvent, event._timeOfEvent, event._p2, p));
+					}
+				}
+			}
+	}
+	
+	/**
+	 * Calculates the next wall collision for the particle(s) involved in an event.
+	 * 
+	 * @param event the event afterwhich to check for new collisions.
+	 */
+	private void enqueueParticleWallCollisions(Event event) {
+		double time = event._p1.getWallCollisionTime(_width, _width);
+		if(time < Double.POSITIVE_INFINITY){
+			_events.add(new Event(time + event._timeOfEvent, event._timeOfEvent, event._p1));
+		}
+
+		if(event._p2 != null){
+			time = event._p2.getWallCollisionTime(_width, _width);
+			if(time < Double.POSITIVE_INFINITY){
+				_events.add(new Event(time + event._timeOfEvent, event._timeOfEvent, event._p2));
+			}
+		}
+	}
+
+
 	public static void main (String[] args) throws IOException {
 		
 		//For testing:
-		args = new String[1];
-		args[0] = "particles_b_start.txt";
+		// args = new String[1];
+		// args[0] = "particles_b_start.txt";
 
 				
 		if (args.length < 1) {
@@ -221,4 +228,22 @@ public class ParticleSimulator extends JPanel {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		simulator.simulate(true);
 	}
+
+	/**
+	 * Tests the result of a simulation run against a list of expected values. (Encapsulated testing);
+	 * 
+	 * @param results a list containing expected results for width, duration and particle states
+	 * @return true if the results match the expected
+	 */
+	public boolean testParticleSimulator(ArrayList<String> results){
+		simulate(false);
+		if(!String.valueOf(_width).equals(results.get(0))) return false;
+		if(!String.valueOf(_duration).equals(results.get(1))) return false;
+		if(_particles.size() != results.size() -2) return false;
+		for(int i = 0; i < _particles.size(); i++){
+			if(!_particles.get(i).toString().equals(results.get(i+2))) return false;
+		}
+
+		return true;
+	}		
 }
