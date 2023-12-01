@@ -3,8 +3,8 @@ import java.util.*;
 import java.util.jar.Attributes.Name;
 
 public class Particle {
-	private String _name;
-	private double _x, _y;
+	public String _name;
+	public double _x, _y;
 	private double _vx, _vy;
 	private double _radius;
 	private double _lastUpdateTime;
@@ -157,38 +157,43 @@ public class Particle {
 		double timeY = Double.POSITIVE_INFINITY;
 		
 		if(_vx > 0){//Collision with right wall.
-			timeX = Math.abs(width - (_x + _radius) / _vx);
+			timeX = Math.abs((width - (_x + _radius)) / _vx);
 			System.out.println("Right");
 		}
 		else if(_vx < 0){//Collision with left wall.
-			timeX = Math.abs((0 + _x - _radius) / _vx);
+			timeX = Math.abs((0 + (_x - _radius)) / _vx);
 			System.out.println("Left");
 
 		}
+
 		if(_vy > 0){//Collision with bottom wall.
 			timeY = Math.abs((height - (_y + _radius)) / _vy);
 			System.out.println("Bottom");
 
 		}
 		else if(_vy < 0){//Collision with top wall.
-			timeY = Math.abs((0 + _y - _radius) / _vy);
+			timeY = Math.abs((0 + (_y - _radius)) / _vy);
 			System.out.println("Top");
 		}
 
+		System.out.println("Time X: " + timeX);
+		System.out.println("Time Y: " + timeY);
+
 		double SMALL = 1e-6;
-		double t;
-
 		if (timeX > SMALL && timeY > SMALL) {
-			t = Math.min(timeX, timeY);
-		} else if (timeX > SMALL) {
-			t = timeX;
-		} else if (timeY > SMALL) {
-			t = timeY;
-		} else {
-			t = Double.POSITIVE_INFINITY;
+			return Math.min(timeX, timeY);
 		}
+		if (timeX > SMALL) {
+			return timeX;
+		}
+		if (timeY > SMALL) {
+			return timeY;
+		}
+		// no collision
+		return Double.POSITIVE_INFINITY;
 
-		return t;
+		//return Math.min(timeX, timeY);
+
 	}
 
 	/**
@@ -201,19 +206,26 @@ public class Particle {
 		System.out.println("Change Velo: " + _name + " " + _x + " " + _y + " " + _vx + " " + _vy + " " + _radius);
 		System.out.println("Now: " + now);
 
-		if(_x + _radius >= width) { // Collision with right wall.
-			this._vx *= -1;
-		}
-		else if(_x - _radius <= 0) { // Collision with left wall
-			this._vx *= -1;
-		}
-		if(_y + _radius >= height) { // Collision with bottom wall.
-			this._vy *= -1;
-		}
-		else if(_y - _radius <= 0) { // Collision with top wall. 
-			this._vy *= -1;
+		double SMALL = 1e-6;
 
+		if(_x + _radius + SMALL >= width || _x + _radius - SMALL >= width) { // Collision with right wall.
+			this._vx *= -1;
+			System.out.println("Right");
 		}
+		else if(_x - _radius + SMALL <= 0 || _x - _radius - SMALL <= 0) { // Collision with left wall
+			this._vx *= -1;
+			System.out.println("Left");
+		}
+		
+		if(_y + _radius + SMALL >= height || _y + _radius - SMALL >= height) { // Collision with bottom wall.
+			this._vy *= -1;
+			System.out.println("Bottom");
+		}
+		else if(_y - _radius + SMALL <= 0 || _y - _radius - SMALL <= 0) { // Collision with top wall. 
+			this._vy *= -1;
+			System.out.println("Top");
+		}
+	
 		_lastUpdateTime = now;
 	}
 }

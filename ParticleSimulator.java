@@ -100,10 +100,16 @@ public class ParticleSimulator extends JPanel {
 			System.out.println("Delta: " + delta);
 			System.out.println("Events: " + _events.size());
 
+			//System.out.println("P1: " + event._p1._name);
+			if(event._p2 != null){
+				System.out.println("P2: " + event._p2._name);
+			}
+
 
 
 			if (event instanceof TerminationEvent) {
 				updateAllParticles(delta);
+				System.out.println("Terminated");
 				break;
 			}
 
@@ -118,7 +124,7 @@ public class ParticleSimulator extends JPanel {
 			// amount of time, and then update the screen.
 			if (show) {
 				try {
-					Thread.sleep((long) delta * 100);
+					Thread.sleep((long) delta);
 				} catch (InterruptedException ie) {}
 			}
 
@@ -131,51 +137,48 @@ public class ParticleSimulator extends JPanel {
 			// (either for a particle-wall collision or a particle-particle collision).
 			// You should call the Particle.updateAfterCollision method at some point.
 			if(event._p2 == null) {
-				System.out.println("updateAfterWallCollision");
 				event._p1.updateAfterWallCollision(event._timeOfEvent, _width, _width);
-				System.out.println("Wall: " + event._p1);
-
+				System.out.println("X: " + event._p1._x);
+				System.out.println("Y: " + event._p1._y);
 			}
 			else {
-				System.out.println("updateAfterParticleCollision");
 				event._p1.updateAfterCollision(event._timeOfEvent, event._p2);
-				System.out.println("Particles: " + event._p1 + " : " + event._p2);
 			}
 
-			Particle p1 = event._p1;
-			Particle p2 = event._p2;
+			//Calculating new collisions:
 
-			for(Particle p : _particles) {
-				if(!p1.equals(p)) {
-					double collisionTime = p1.getCollisionTime(p);
-					if(collisionTime < Double.POSITIVE_INFINITY) {
-						System.out.println("Enqueue new Particle Collision Events: " + p1 + " : " + p + " time: " + collisionTime);
-						_events.add(new Event(collisionTime + event._timeOfEvent, event._timeOfEvent, p1, p));
+			//Check for collisions with other particles
+			for(Particle p : _particles){
+				if(!p.equals(event._p1)){
+					System.out.println("Enqueueing new event \n\n");
+					double time = event._p1.getCollisionTime(p);
+					if(time < Double.POSITIVE_INFINITY){
+						_events.add(new Event(time + event._timeOfEvent, event._timeOfEvent, event._p1, p));
 					}
 				}
-				if(p2 != null && !p2.equals(p)) {
-					double collisionTime = p2.getCollisionTime(p);
-					if(collisionTime < Double.POSITIVE_INFINITY) {
-						System.out.println("Enqueue new Particle Collision Events: " + p2 + " : " + p + " time: " + collisionTime);
-
-						_events.add(new Event(collisionTime + event._timeOfEvent, event._timeOfEvent, p2, p));
+				if(event._p2 != null && !p.equals(event._p2)){
+					System.out.println("Enqueueing new event \n\n");
+					double time = event._p2.getCollisionTime(p);
+					if(time < Double.POSITIVE_INFINITY){
+						_events.add(new Event(time + event._timeOfEvent, event._timeOfEvent, event._p2, p));
 					}
-				}	
+				}
 			}
 
 
-			if(p1.getWallCollisionTime(_width, _width) < Double.POSITIVE_INFINITY) {
-				System.out.println("Enqueue Wall Collision: " + p1 + " time: " + p1.getWallCollisionTime(_width, _width));
-				System.out.println("Wall Collision");
-				_events.add(new Event(p1.getWallCollisionTime(_width, _width) + event._timeOfEvent, event._timeOfEvent, p1, null));
-				System.out.println("Stuck 1");
+			//Check for collisions with walls
+			double time = event._p1.getWallCollisionTime(_width, _width);
+			if(time < Double.POSITIVE_INFINITY){
+				System.out.println("Time!!!" + time);
+				System.out.println("Queuing Wall Collision: ");
+				_events.add(new Event(time + event._timeOfEvent, event._timeOfEvent, event._p1, null));
 			}
 
-			if(p2 != null && p2.getWallCollisionTime(_width, _width) < Double.POSITIVE_INFINITY) {
-				System.out.println("Enqueue Wall Collision: " + p2 + " time: " + p2.getWallCollisionTime(_width, _width));
-				System.out.println("Wall Collision");
-				_events.add(new Event(p2.getWallCollisionTime(_width, _width) + event._timeOfEvent, event._timeOfEvent, p2, null));
-				System.out.println("Stuck 2");
+			if(event._p2 != null){
+				time = event._p2.getWallCollisionTime(_width, _width);
+				if(time < Double.POSITIVE_INFINITY){
+					_events.add(new Event(time + event._timeOfEvent, event._timeOfEvent, event._p2, null));
+				}
 			}
 
 			// Update the time of our simulation
@@ -185,7 +188,6 @@ public class ParticleSimulator extends JPanel {
 			if (show) {
 				repaint();
 			}
-			count++;
 		}
 
 		// Print out the final state of the simulation
@@ -195,12 +197,11 @@ public class ParticleSimulator extends JPanel {
 			System.out.println(p);
 		}
 	}
-
 	public static void main (String[] args) throws IOException {
 		
 		//For testing:
 		args = new String[1];
-		args[0] = "test.txt";
+		args[0] = "particles_b_start.txt";
 
 				
 		if (args.length < 1) {
