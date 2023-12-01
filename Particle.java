@@ -206,7 +206,7 @@ public class Particle {
 		System.out.println("Change Velo: " + _name + " " + _x + " " + _y + " " + _vx + " " + _vy + " " + _radius);
 		System.out.println("Now: " + now);
 
-		double SMALL = 1e-6;
+		double SMALL = 1e-6 * _vx;
 
 		if(_x + _radius + SMALL >= width || _x + _radius - SMALL >= width) { // Collision with right wall.
 			this._vx *= -1;
@@ -217,6 +217,7 @@ public class Particle {
 			System.out.println("Left");
 		}
 		
+		SMALL = 1e-6 * _vy;
 		if(_y + _radius + SMALL >= height || _y + _radius - SMALL >= height) { // Collision with bottom wall.
 			this._vy *= -1;
 			System.out.println("Bottom");
