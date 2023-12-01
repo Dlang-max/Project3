@@ -3,8 +3,6 @@ import java.util.function.*;
 import javax.swing.*;
 import java.awt.*;
 import java.io.*;
-import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.*;
 
 public class ParticleSimulator extends JPanel {
 	private Heap<Event> _events;
@@ -246,4 +244,4 @@ public class ParticleSimulator extends JPanel {
 
 		return true;
 	}		
-}
+}	

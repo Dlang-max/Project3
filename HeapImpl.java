@@ -1,4 +1,3 @@
-
 /**
  * A Heap is a data structure that maintains the Heap property. The Heap property is that the parent of any node has a higher priority than its children.
  * This implementation uses an array to store the data. The array is ordered so that the highest priority element is at the front of the array.
